@@ -1,7 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'cloud.codesupply.co',
+        pathname: '/endpoint/react/images/**',
+      },
+    ],
+  },
 };
 
 export default nextConfig;
