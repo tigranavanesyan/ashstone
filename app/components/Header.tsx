@@ -12,6 +12,7 @@ export default function Header({ searchQuery = "", onSearchChange }: HeaderProps
   const [scrollY, setScrollY] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSubmenuOpen, setIsSubmenuOpen] = useState<string | null>(null);
+  const [openMobileSubmenu, setOpenMobileSubmenu] = useState<Set<string>>(new Set());
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const lastScrollY = useRef(0);
   const [menuVisible, setMenuVisible] = useState(true);
@@ -46,6 +47,27 @@ export default function Header({ searchQuery = "", onSearchChange }: HeaderProps
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useEffect(() => {
+    if (!isMobileMenuOpen) {
+      setOpenMobileSubmenu(new Set());
+    }
+  }, [isMobileMenuOpen]);
+
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      // Блокируем скролл страницы
+      document.body.style.overflow = "hidden";
+    } else {
+      // Разблокируем скролл страницы
+      document.body.style.overflow = "";
+    }
+
+    // Очистка при размонтировании компонента
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isMobileMenuOpen]);
 
   const menuItems = [
     {
@@ -240,11 +262,14 @@ export default function Header({ searchQuery = "", onSearchChange }: HeaderProps
       {isMobileMenuOpen && (
         <>
           <div
-            className="fixed inset-0 bg-black bg-opacity-50 z-50 md:hidden"
-            onClick={() => setIsMobileMenuOpen(false)}
+            className="fixed inset-0 bg-black/50 z-50 md:hidden"
+            onClick={() => {
+              setIsMobileMenuOpen(false);
+              setOpenMobileSubmenu(new Set());
+            }}
           />
           <div
-            className={`fixed left-0 top-0 bottom-0 w-64 bg-white z-50 transform transition-transform duration-300 ease-in-out md:hidden ${
+            className={`fixed left-0 top-0 bottom-0 w-full max-w-90 bg-white z-50 transform transition-transform duration-300 ease-in-out md:hidden ${
               isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
             }`}
           >
@@ -257,40 +282,67 @@ export default function Header({ searchQuery = "", onSearchChange }: HeaderProps
                 />
               </div>
               <button
-                onClick={() => setIsMobileMenuOpen(false)}
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  setOpenMobileSubmenu(new Set());
+                }}
                 className="relative w-6 h-6 flex items-center justify-center"
                 aria-label="Close menu"
               >
                 <CloseIcon className="w-6 h-6 text-black" />
               </button>
             </div>
-            <nav className="p-4">
+            <nav className="p-4 overflow-y-auto max-h-[calc(100vh-80px)]">
               <ul className="space-y-0">
                 {menuItems.map((item, index) => (
                   <li key={index}>
                     {index > 0 && <hr className="my-0 border-gray-200" />}
-                    <a
-                      href={item.href}
-                      className="py-3 text-base font-medium text-black hover:text-gray-700 flex items-center justify-between"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      {item.label}
-                      {item.submenu && <ChevronDownIcon />}
-                    </a>
-                    {item.submenu && (
-                      <ul className="ml-4 space-y-0">
-                        {item.submenu.map((subItem, subIndex) => (
-                          <li key={subIndex}>
-                            <a
-                              href={subItem.href}
-                              className="block py-2 text-sm text-gray-700 hover:text-gray-900"
-                              onClick={() => setIsMobileMenuOpen(false)}
-                            >
-                              {subItem.label}
-                            </a>
-                          </li>
-                        ))}
-                      </ul>
+                    {item.submenu ? (
+                      <>
+                        <button
+                          className="w-full py-3 text-base font-medium text-black hover:text-gray-700 flex items-center gap-2"
+                          onClick={() => {
+                            const currentSet = openMobileSubmenu || new Set();
+                            const newSet = new Set(currentSet);
+                            if (newSet.has(item.label)) {
+                              newSet.delete(item.label);
+                            } else {
+                              newSet.add(item.label);
+                            }
+                            setOpenMobileSubmenu(newSet);
+                          }}
+                        >
+                          {item.label}
+                          <ChevronDownIcon
+                            className={`transition-transform w-2.5 h-1.5 mt-0.5 ${
+                              openMobileSubmenu?.has(item.label) ? "rotate-180" : ""
+                            }`}
+                          />
+                        </button>
+                        {openMobileSubmenu?.has(item.label) && (
+                          <ul className="ml-4 space-y-0 max-h-64 overflow-y-auto">
+                            {item.submenu.map((subItem, subIndex) => (
+                              <li key={subIndex}>
+                                <a
+                                  href={subItem.href}
+                                  className="block py-2 text-sm text-gray-700 hover:text-gray-900"
+                                  onClick={() => setIsMobileMenuOpen(false)}
+                                >
+                                  {subItem.label}
+                                </a>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </>
+                    ) : (
+                      <a
+                        href={item.href}
+                        className="py-3 text-base font-medium text-black hover:text-gray-700 flex items-center justify-between"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        {item.label}
+                      </a>
                     )}
                   </li>
                 ))}
