@@ -3,13 +3,15 @@
 import { useEffect } from "react";
 import { Post } from "../types";
 import { CloseIcon } from "./Icons";
+import { highlightText } from "../utils/highlightText";
 
 interface PostModalProps {
   post: Post | null;
   onClose: () => void;
+  searchQuery?: string;
 }
 
-export default function PostModal({ post, onClose }: PostModalProps) {
+export default function PostModal({ post, onClose, searchQuery = "" }: PostModalProps) {
   useEffect(() => {
     if (post) {
       // Блокируем скролл страницы
@@ -56,7 +58,7 @@ export default function PostModal({ post, onClose }: PostModalProps) {
             {post.tags}
           </span>
           <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-            {post.title}
+            {highlightText(post.title, searchQuery)}
           </h1>
           <div className="flex items-center justify-between text-sm text-gray-500 pt-4 border-t border-gray-200">
             <span className="font-medium">{post.autor}</span>
@@ -66,7 +68,7 @@ export default function PostModal({ post, onClose }: PostModalProps) {
             </div>
           </div>
           <p className="text-base md:text-lg text-gray-700 leading-relaxed mb-6">
-            {post.text}
+            {highlightText(post.text, searchQuery)}
           </p>
 
         </div>

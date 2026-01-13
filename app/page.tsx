@@ -54,6 +54,7 @@ export default function Home() {
 
   const handleCloseModal = () => {
     setSelectedPost(null);
+    setSearchQuery('');
   };
 
   return (
@@ -65,10 +66,10 @@ export default function Home() {
             <p className="text-center text-gray-500 text-lg">Loading posts...</p>
           </div>
         ) : (
-          <PostList posts={filteredPosts} onPostClick={handlePostClick} />
+          <PostList posts={filteredPosts} onPostClick={handlePostClick} searchQuery={searchQuery} />
         )}
       </main>
-      <PostModal post={selectedPost} onClose={handleCloseModal} />
+      <PostModal post={selectedPost} onClose={handleCloseModal} searchQuery={searchQuery} />
     </div>
   );
 }

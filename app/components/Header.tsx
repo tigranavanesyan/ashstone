@@ -128,13 +128,15 @@ export default function Header({ searchQuery = "", onSearchChange }: HeaderProps
     { label: "Buy Now", href: "#", submenu: null },
   ];
 
-  const isSticky = scrollY > 0;
+  const isSticky = scrollY > 85;
   const shouldShowMenu = scrollY === 0 || (scrollY > 0 && menuVisible);
 
   const handleSearchToggle = () => {
     setIsSearchOpen(!isSearchOpen);
     if (!isSearchOpen && searchInputRef.current) {
       setTimeout(() => searchInputRef.current?.focus(), 0);
+    } else {
+      onSearchChange?.("");
     }
   };
 
