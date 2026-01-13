@@ -9,7 +9,6 @@ interface HeaderProps {
 }
 
 export default function Header({ searchQuery = "", onSearchChange }: HeaderProps) {
-  const [scrollY, setScrollY] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSubmenuOpen, setIsSubmenuOpen] = useState<string | null>(null);
   const [openMobileSubmenu, setOpenMobileSubmenu] = useState<Set<string>>(new Set());
@@ -29,8 +28,6 @@ export default function Header({ searchQuery = "", onSearchChange }: HeaderProps
           const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
           const headerHeight = headerTopRef.current?.offsetHeight || 0;
           
-          setScrollY(scrollTop);
-
           // Определяем, когда меню становится sticky
           if (scrollTop >= headerHeight) {
             if (!isSticky) {
@@ -184,40 +181,44 @@ export default function Header({ searchQuery = "", onSearchChange }: HeaderProps
                 <span className="block w-full h-0.5 bg-black"></span>
                 <span className="block w-full h-0.5 bg-black"></span>
               </button>
-              <div className="flex items-center">
+              <div className={`flex items-center transition-opacity duration-200 ${isSearchOpen ? 'md:opacity-100 opacity-0 pointer-events-none md:pointer-events-auto' : 'opacity-100'}`}>
                 <img 
                   src="/Logotype.svg" 
                   alt="LOGOTYPE" 
                   className="h-6 md:h-7 w-45"
                 />
               </div>
-              <div className="absolute right-0 flex items-center">
-                {isSearchOpen ? (
-                  <div className="flex items-center gap-2">
-                    <input
-                      ref={searchInputRef}
-                      type="text"
-                      placeholder="Search..."
-                      value={searchQuery}
-                      onChange={handleSearchChange}
-                      className="px-3 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent text-sm w-48 md:w-64"
-                      autoFocus
-                    />
-                    <button
-                      onClick={handleSearchToggle}
-                      className="w-6 h-6 flex items-center justify-center"
-                      aria-label="Close search"
-                    >
-                      <CloseIcon className="w-5 h-5 text-black" />
-                    </button>
-                  </div>
-                ) : (
+              <div className="absolute right-0 flex items-center gap-2">
+                <div className={`flex items-center gap-2 transition-all duration-300 ease-in-out origin-right overflow-hidden ${
+                  isSearchOpen 
+                    ? "opacity-100 scale-x-100 translate-x-0 pointer-events-auto max-w-80" 
+                    : "opacity-0 scale-x-0 -translate-x-2 pointer-events-none max-w-0"
+                }`}>
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder="Search..."
+                    value={searchQuery}
+                    onChange={handleSearchChange}
+                    className="px-3 py-1.5 bg-gray-50 border border-gray-300 rounded-md shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-gray-400 focus:bg-white focus:shadow-md hover:border-gray-400 text-sm w-64 md:w-64"
+                    autoFocus={isSearchOpen}
+                  />
+                </div>
+                {!isSearchOpen ? (
                   <button
                     onClick={handleSearchToggle}
-                    className="w-6 h-6 flex items-center justify-center"
+                    className="w-6 h-6 flex items-center justify-center transition-all duration-300 ease-in-out flex-shrink-0"
                     aria-label="Search"
                   >
                     <SearchIcon className="w-4.5 h-4.5 text-black" />
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleSearchToggle}
+                    className="w-6 h-6 flex items-center justify-center transition-all duration-300 ease-in-out flex-shrink-0"
+                    aria-label="Close search"
+                  >
+                    <CloseIcon className="w-5 h-5 text-black" />
                   </button>
                 )}
               </div>
@@ -281,20 +282,20 @@ export default function Header({ searchQuery = "", onSearchChange }: HeaderProps
         </nav>
 
       {/* Mobile menu overlay */}
-      {isMobileMenuOpen && (
-        <>
-          <div
-            className="fixed inset-0 bg-black/50 z-50 md:hidden"
-            onClick={() => {
-              setIsMobileMenuOpen(false);
-              setOpenMobileSubmenu(new Set());
-            }}
-          />
-          <div
-            className={`fixed left-0 top-0 bottom-0 w-full max-w-90 bg-white z-50 transform transition-transform duration-300 ease-in-out md:hidden ${
-              isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
-            }`}
-          >
+      <div
+        className={`fixed inset-0 bg-black/50 z-50 md:hidden transition-opacity duration-300 ease-in-out ${
+          isMobileMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        }`}
+        onClick={() => {
+          setIsMobileMenuOpen(false);
+          setOpenMobileSubmenu(new Set());
+        }}
+      />
+      <div
+        className={`fixed left-0 top-0 bottom-0 w-full max-w-90 bg-white z-50 transform transition-transform duration-300 ease-in-out md:hidden ${
+          isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
             <div className="p-4 border-b border-gray-200 flex items-center justify-between">
               <div className="flex items-center">
                 <img 
@@ -341,21 +342,25 @@ export default function Header({ searchQuery = "", onSearchChange }: HeaderProps
                             }`}
                           />
                         </button>
-                        {openMobileSubmenu?.has(item.label) && (
-                          <ul className="ml-4 space-y-0 max-h-64 overflow-y-auto">
-                            {item.submenu.map((subItem, subIndex) => (
-                              <li key={subIndex}>
-                                <a
-                                  href={subItem.href}
-                                  className="block py-2 text-sm text-gray-700 hover:text-gray-900"
-                                  onClick={() => setIsMobileMenuOpen(false)}
-                                >
-                                  {subItem.label}
-                                </a>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
+                        <ul 
+                          className={`ml-4 space-y-0 overflow-hidden transition-all duration-300 ease-in-out ${
+                            openMobileSubmenu?.has(item.label) 
+                              ? "max-h-96 opacity-100" 
+                              : "max-h-0 opacity-0"
+                          }`}
+                        >
+                          {item.submenu.map((subItem, subIndex) => (
+                            <li key={subIndex}>
+                              <a
+                                href={subItem.href}
+                                className="block py-2 text-sm text-gray-700 hover:text-gray-900"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                              >
+                                {subItem.label}
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
                       </>
                     ) : (
                       <a
@@ -371,8 +376,6 @@ export default function Header({ searchQuery = "", onSearchChange }: HeaderProps
               </ul>
             </nav>
           </div>
-        </>
-      )}
     </>
   );
 }
