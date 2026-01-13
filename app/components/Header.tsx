@@ -16,37 +16,61 @@ export default function Header({ searchQuery = "", onSearchChange }: HeaderProps
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const lastScrollY = useRef(0);
   const [menuVisible, setMenuVisible] = useState(true);
+  const [isSticky, setIsSticky] = useState(false);
+  const headerTopRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    let ticking = false;
+
     const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      const scrollDirection =
-        currentScrollY > lastScrollY.current ? "down" : "up";
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+          const headerHeight = headerTopRef.current?.offsetHeight || 0;
+          
+          setScrollY(scrollTop);
 
-      setScrollY(currentScrollY);
-
-      // If at top, menu should be in original position (not sticky)
-      if (currentScrollY === 0) {
-        setMenuVisible(true);
-      } else if (currentScrollY > 200) {
-        // After 200px, show/hide based on scroll direction
-        if (scrollDirection === "down") {
-          setMenuVisible(false);
-        } else {
-          setMenuVisible(true);
-        }
-      } else {
-        // Before 200px, menu is sticky and visible
-        setMenuVisible(true);
+          // Определяем, когда меню становится sticky
+          if (scrollTop >= headerHeight) {
+            if (!isSticky) {
+              setIsSticky(true);
+            }
+            
+            // Вычисляем, сколько прокрутили после прилипания
+            const scrollAfterSticky = scrollTop - headerHeight;
+            const hideThreshold = 200; // 200px после прилипания
+            
+            // Определяем направление скролла
+            const scrollingDown = scrollTop > lastScrollY.current;
+            
+            // Если прокрутили больше 200px вниз после прилипания - скрываем
+            if (scrollingDown && scrollAfterSticky > hideThreshold) {
+              setMenuVisible(false);
+            } 
+            // Если прокручиваем наверх - показываем
+            else if (!scrollingDown) {
+              setMenuVisible(true);
+            }
+          } else {
+            // Если прокрутили до верха - убираем класс hidden и сбрасываем состояние
+            setIsSticky(false);
+            setMenuVisible(true);
+          }
+          
+          lastScrollY.current = scrollTop;
+          ticking = false;
+        });
+        ticking = true;
       }
-
-      lastScrollY.current = currentScrollY;
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
+    // Инициализация при загрузке
+    handleScroll();
+    
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [isSticky]);
 
   useEffect(() => {
     if (!isMobileMenuOpen) {
@@ -128,8 +152,6 @@ export default function Header({ searchQuery = "", onSearchChange }: HeaderProps
     { label: "Buy Now", href: "#", submenu: null },
   ];
 
-  const isSticky = scrollY > 85;
-  const shouldShowMenu = scrollY === 0 || (scrollY > 0 && menuVisible);
 
   const handleSearchToggle = () => {
     setIsSearchOpen(!isSearchOpen);
@@ -150,7 +172,7 @@ export default function Header({ searchQuery = "", onSearchChange }: HeaderProps
     <>
       <header className="relative">
         {/* Top section with logo */}
-        <div className="bg-white border-b border-gray-200">
+        <div ref={headerTopRef} className="bg-white border-b border-gray-200">
           <div className="max-w-300 mx-auto px-4 py-7">
             <div className="flex items-center justify-center relative">
               <button
@@ -202,15 +224,14 @@ export default function Header({ searchQuery = "", onSearchChange }: HeaderProps
             </div>
           </div>
         </div>
+      </header>
 
-        {/* Horizontal menu - sticky */}
-        <nav
-          className={`hidden md:block bg-white border-b border-gray-200 transition-transform duration-300 ${
-            isSticky
-              ? "fixed top-0 left-0 right-0 z-50 shadow-md"
-              : "sticky top-0 z-40"
-          } ${!shouldShowMenu ? "-translate-y-full" : ""}`}
-        >
+      {/* Horizontal menu - sticky */}
+      <nav
+        className={`hidden md:block bg-white border-b border-gray-200 sticky top-0 z-40 transition-transform duration-300 ease-in-out ${
+          !menuVisible ? "-translate-y-full" : "translate-y-0"
+        }`}
+      >
           <div className="max-w-300 mx-auto px-5">
             <ul className="flex items-center justify-center gap-6 lg:gap-8 h-14">
               {menuItems.map((item, index) => (
@@ -258,7 +279,6 @@ export default function Header({ searchQuery = "", onSearchChange }: HeaderProps
             </ul>
           </div>
         </nav>
-      </header>
 
       {/* Mobile menu overlay */}
       {isMobileMenuOpen && (
